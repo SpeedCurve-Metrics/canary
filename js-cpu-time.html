@@ -5,9 +5,23 @@
     <title>JS CPU Time Canary</title>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">Blocking the main thread before loading React app...</div>
 
     <script src="babel.js"></script>
+
+    <script>
+      createLongTask(1500);
+      document.getElementById("app").innerHTML = "Done blocking the main thread. Loading React app...";
+
+      function createLongTask(duration) {
+          const startTime = performance.now();
+
+          while (performance.now() < startTime + duration) {
+              // Block the main thread for the specified time
+          }
+      };
+    </script>
+
     <script src="react.development.js"></script>
     <script src="react-dom.development.js"></script>
 
@@ -71,7 +85,7 @@
             }
           };
 
-          setTimeout(() => processChunk(1), 20);
+          setTimeout(() => processChunk(1), 33);
         }
 
         calculatePrimes(start, max) {
@@ -91,7 +105,7 @@
         }
       }
 
-      ReactDOM.render(<App n={100000000} />, document.getElementById("app"));
+      ReactDOM.render(<App n={50000000} />, document.getElementById("app"));
     </script>
   </body>
 </html>
