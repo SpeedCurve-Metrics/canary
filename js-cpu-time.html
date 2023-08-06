@@ -7,25 +7,29 @@
   <body>
     <div id="app">Blocking the main thread before loading React app...</div>
 
-    <script src="babel.js"></script>
-
     <script>
-      createLongTask(1500);
-      document.getElementById("app").innerHTML = "Done blocking the main thread. Loading React app...";
+      const appDelayTime = 500;
 
       function createLongTask(duration) {
-          const startTime = performance.now();
+        const startTime = performance.now();
 
-          while (performance.now() < startTime + duration) {
-              // Block the main thread for the specified time
-          }
-      };
+        while (performance.now() < startTime + duration) {
+          // Block the main thread for the specified time
+        }
+      }
+
+      setTimeout(() => {
+        createLongTask(appDelayTime);
+        document.getElementById("app").innerHTML = "Done blocking the main thread. Loading React app...";
+      }, 500);
     </script>
 
-    <script src="react.development.js"></script>
-    <script src="react-dom.development.js"></script>
+    <script src="react.production.min.js"></script>
+    <script src="react-dom.production.min.js"></script>
 
-    <script type="text/babel">
+    <script>
+      const e = React.createElement;
+
       class App extends React.Component {
         constructor(props) {
           super(props);
@@ -35,77 +39,64 @@
         }
 
         render() {
-          return (
-            <div>
-              <h1>JS CPU Time Canary</h1>
-              <p>
-                Calculating primes... {this.state.progress} / {this.props.n}
-              </p>
-              {this.statusText()}
-              <img src={this.imgSrc()} style={{ width: "400px" }} />
-            </div>
+          return e("div", null,
+              e("h1", null, "JS CPU Time Canary"),
+              e("p", null, `Running long tasks... ${this.state.progress} / ${this.props.tasks}`),
+              e("pre", null, JSON.stringify({ props: this.props }, null, 4)),
+              e("p", null, ...this.progressImages()),
+              this.statusText(),
+              this.finalImage(),
           );
         }
 
         isDone() {
-          return this.state.progress === this.props.n;
+          return this.state.progress === this.props.tasks;
         }
 
-        imgSrc() {
+        progressImages() {
+          return new Array(this.state.progress).fill().map((_, i) => {
+            return e("img", { src: i % 2 ? "eve.jpg" : "charlie.jpg", style: { width: "40px" } });
+          });
+        }
+
+        finalImage() {
           if (this.isDone()) {
-            return "donut-bite.png";
+            return e("img", { src: "donut-bite.png", style: { width: "400px" } });
           }
         }
 
         statusText() {
           if (this.isDone()) {
-            return <h2>Done!</h2>;
+            return e("h2", null, "Done!");
           }
         }
 
         componentDidMount() {
-          const max = this.props.n;
-          const chunks = 20;
-          const chunkSize = max / chunks;
-
-          const processChunk = (chunkNum) => {
-            if (chunkNum <= chunks) {
-              const max = chunkNum * chunkSize;
-              const start = max - chunkSize;
-
-              return this.calculatePrimes(start, max)
-                .then(() => this.setState({ progress: max }))
-                .then(() => {
-                  return new Promise((resolve) => {
-                    setTimeout(() => resolve(processChunk(chunkNum + 1)), 20);
-                  });
-                });
+          const processNextTask = (taskNum) => {
+            if (taskNum <= this.props.tasks) {
+              return this.runTask(taskNum)
+                .then(() => this.setState({ progress: taskNum }))
+                .then(() => new Promise((resolve) => {
+                    requestAnimationFrame(() => resolve(processNextTask(taskNum + 1)));
+                }));
             } else {
               return Promise.resolve(true);
             }
           };
 
-          setTimeout(() => processChunk(1), 33);
+          requestAnimationFrame(() => processNextTask(1));
         }
 
-        calculatePrimes(start, max) {
+        runTask() {
           return new Promise((resolve) => {
-            const sieve = [];
-
-            for (let i = Math.max(start, 2); i <= max; ++i) {
-              if (!sieve[i]) {
-                for (let j = i << 1; j <= max; j += i) {
-                  sieve[j] = true;
-                }
-              }
-            }
-
-            resolve(true);
+            resolve(createLongTask(this.props.taskTime));
           });
         }
       }
 
-      ReactDOM.render(<App n={50000000} />, document.getElementById("app"));
+      setTimeout(() => {
+        ReactDOM.render(e(App, { tasks: 65, taskTime: 50 }), document.getElementById("app"));
+      }, appDelayTime);
     </script>
   </body>
 </html>
