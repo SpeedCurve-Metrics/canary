@@ -102,8 +102,12 @@
         }
       }
 
+      const qs = new URLSearchParams(location.search);
+      const tasks = Number(qs.get("tasks")) || 40;
+      const taskTime = Number(qs.get("taskTime")) || 67;
+
       setTimeout(() => {
-        ReactDOM.render(e(App, { tasks: 40, taskTime: 67 }), document.getElementById("app"));
+        ReactDOM.render(e(App, { tasks, taskTime }), document.getElementById("app"));
       }, APP_DELAY_TIME / 2);
     </script>
   </body>
